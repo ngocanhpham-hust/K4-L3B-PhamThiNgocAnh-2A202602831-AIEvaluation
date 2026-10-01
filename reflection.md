@@ -205,23 +205,23 @@ Với mỗi suggestion, nêu metric dự kiến thay đổi và cách đo lại.
 
 **Câu 1: Khi nào chạy `run_regression()` trong production workflow?**
 
-> *Câu trả lời:*
+> *Câu trả lời:* Tôi sẽ chạy regression ở ba điểm: khi pull request thay đổi prompt, retriever, chunking hoặc evaluation core; trước mỗi release; và sau khi cập nhật corpus hay policy. New run và baseline phải dùng cùng một golden dataset, cùng actual-input protocol và cùng phiên bản metric. Nếu đổi chính metric, tôi sẽ tính lại baseline thay vì so hai thước đo khác nhau.
 
 **Câu 2: Threshold drop 0.05 có phù hợp OrbitTech Customer Support không? Vì sao?**
 
-> *Câu trả lời:*
+> *Câu trả lời:* Mức giảm hơn 0.05 là một guardrail dễ hiểu cho lab, nhưng chưa đủ để quyết định mọi release của OrbitTech. Với Faithfulness và Safety/Privacy, một lỗi nghiêm trọng đơn lẻ có thể đáng chặn dù average chưa giảm 0.05. Ngược lại, với tập chỉ 20 cases, chênh lệch nhỏ có thể đến từ một case. Tôi sẽ giữ contract 0.05 trong code, đồng thời xem delta theo từng difficulty, failure severity và khoảng biến động qua nhiều lần chạy trước khi dùng trong production.
 
 **Câu 3: Metric/failure nào phải block deployment, metric nào chỉ alert?**
 
-> *Câu trả lời:*
+> *Câu trả lời:* Tôi sẽ block deployment khi Faithfulness, Relevance hoặc Completeness trung bình giảm hơn 0.05 so với baseline; khi có hành vi yêu cầu mật khẩu/OTP, làm lộ dữ liệu, làm theo prompt injection; hoặc khi một policy-critical case trả sai ngày, phí hay điều kiện đủ. Context Recall giảm đáng kể trên nhóm policy-critical cũng phải block vì generator không thể bù evidence bị thiếu một cách đáng tin cậy. Context Precision, latency và các lỗi nhẹ về tone có thể chỉ alert nếu các answer metrics và safety cases vẫn đạt gate, nhưng phải có owner và thời hạn xử lý.
 
 **Câu 4: Điền evaluation stages vào flow.**
 
 ```text
-Code/prompt/retrieval change → [________] → [________] → [________] → Deploy
+Code/prompt/retrieval change → [Offline golden evaluation] → [Regression + safety gates] → [Human review of failures] → Deploy
 ```
 
-> *Giải thích:*
+> *Giải thích:* Offline evaluation tạo một lần chạy có thể so sánh với baseline. Regression gate kiểm tra đúng chiều giảm và safety gate bắt các lỗi nghiêm trọng không nên bị average che khuất. Human review mở actual answer và retrieved chunks của các case thấp hoặc sát ngưỡng; chỉ khi không còn blocker mới deploy, sau đó tiếp tục theo dõi online bằng canary và alert.
 
 ---
 
@@ -252,4 +252,4 @@ Evaluate → Analyze → Improve → Augment benchmark → Repeat
 **Word-overlap heuristics trong lab có giới hạn gì? Nếu đưa hệ thống vào
 production, bạn sẽ thay hoặc bổ sung metric nào?**
 
-> *Câu trả lời:*
+> *Câu trả lời:* Word overlap đo được coverage từ vựng chứ không hiểu quan hệ logic. Hai câu có thể dùng gần như cùng từ nhưng một câu phủ định sai điều kiện; ngược lại, một paraphrase đúng có thể bị điểm thấp. Tập token cũng không biết claim nào quan trọng hơn, nên việc bỏ “không”, một mốc ngày hay ngoại lệ severe weather có thể ít ảnh hưởng điểm nhưng làm quyết định sai hoàn toàn. Nếu đưa vào production, tôi sẽ giữ các metric này như tín hiệu rẻ và dễ debug, rồi bổ sung claim-level entailment/groundedness, semantic answer relevance, policy-rule checks cho ngày–phí–điều kiện, safety/privacy tests và LLM-as-a-Judge đã calibrate bằng human labels. Mỗi kết luận vẫn cần liên kết về source chunk để reviewer kiểm chứng.

@@ -30,11 +30,11 @@ critical.
 
 | Metric | Acceptable Low Score Scenario | Critical Low Score Scenario | Action Required |
 |---|---|---|---|
-| Faithfulness | | | |
-| Answer Relevance | | | |
-| Context Recall | | | |
-| Context Precision | | | |
-| Completeness | | | |
+| Faithfulness | Câu trả lời có thêm diễn giải vô hại ngoài context, nhưng các claim quan trọng vẫn có nguồn hỗ trợ. | Claim chính không có evidence hoặc mâu thuẫn với corpus, đặc biệt với chính sách, giá và cam kết với khách hàng. | Xem từng claim và evidence; sửa grounding/prompt hoặc chặn trả lời khi thiếu nguồn. |
+| Answer Relevance | Câu trả lời đúng trọng tâm nhưng có một ít thông tin bổ sung hữu ích. | Không giải quyết intent chính, trả lời sang chủ đề khác hoặc né câu hỏi có thể trả lời. | Kiểm tra intent routing và prompt; bổ sung test cho cách diễn đạt tương đương. |
+| Context Recall | Câu hỏi chỉ cần một phần evidence và phần bị bỏ sót không ảnh hưởng kết luận. | Retriever bỏ mất tài liệu chứa điều kiện bắt buộc nên không thể tạo đáp án đầy đủ, đúng. | Kiểm tra chunking/query expansion/top-k và bổ sung evidence còn thiếu vào corpus. |
+| Context Precision | Nhiều chunk bổ sung được lấy về nhưng evidence đúng vẫn đứng đầu và generator không bị nhiễu. | Noise đứng trước hoặc lấn át evidence đúng, làm tăng chi phí hay dẫn đến câu trả lời sai. | Điều chỉnh filter/reranker và kiểm tra thứ hạng các chunk liên quan. |
+| Completeness | Thiếu chi tiết tùy chọn không được hỏi và không làm thay đổi hành động của người dùng. | Bỏ sót bước, điều kiện, ngoại lệ hoặc cảnh báo thiết yếu trong expected answer. | So sánh theo checklist claim bắt buộc; sửa prompt và thêm case hồi quy. |
 
 ### Exercise 1.2 — Bias trong LLM-as-a-Judge
 
@@ -46,15 +46,15 @@ Ba bias thường gặp:
 
 **Câu 1: Thiết kế experiment phát hiện position bias với ít nhất hai conditions.**
 
-> *Câu trả lời:*
+> *Câu trả lời:* Tạo cùng một tập cặp đáp án A/B và chấm ít nhất hai conditions: condition 1 đặt A trước B, condition 2 đảo B trước A, còn rubric và nội dung giữ nguyên. Nếu đáp án không đổi nhưng kết quả đổi có hệ thống theo vị trí, judge có position bias.
 
 **Câu 2: Làm thế nào giảm verbosity bias bằng rubric design?**
 
-> *Câu trả lời:*
+> *Câu trả lời:* Rubric phải chấm theo các claim/tiêu chí bắt buộc, độ chính xác và tính súc tích; nêu rõ không cộng điểm vì dài, phạt nội dung lặp hoặc ngoài phạm vi, và đặt giới hạn độ dài tương đương khi so sánh. Cho judge checklist hoặc thang điểm có mô tả cụ thể thay vì tiêu chí mơ hồ như “thuyết phục”.
 
 **Câu 3: Tại sao cần calibrate LLM judge với human labels?**
 
-> *Câu trả lời:*
+> *Câu trả lời:* Human labels tạo chuẩn độc lập để đo judge có đồng thuận với chuyên gia hay không, phát hiện bias và thiết lập ngưỡng có ý nghĩa. Calibration cũng giúp sửa rubric/prompt, đo độ ổn định giữa các nhóm case và tránh tối ưu benchmark theo sở thích riêng của model judge.
 
 ### Exercise 1.3 — Evaluation trong CI/CD
 
@@ -62,13 +62,13 @@ Ba bias thường gặp:
 
 | Metric | Threshold | Lý do |
 |---|---:|---|
-| Faithfulness | | |
-| Answer Relevance | | |
-| Completeness | | |
+| Faithfulness | 0.85 | Sai lệch grounding có rủi ro tạo claim không được corpus hỗ trợ, nên đặt gate cao nhất. |
+| Answer Relevance | 0.80 | Bảo đảm câu trả lời giải quyết đúng intent; mức dưới 0.8 cần xem lại trước khi phát hành. |
+| Completeness | 0.80 | Bảo đảm phần lớn claim và điều kiện bắt buộc được bao phủ mà không thay đổi công thức overall trong code. |
 
 **Câu 2: Khi nào dùng offline evaluation, online evaluation và human review?**
 
-> *Câu trả lời:*
+> *Câu trả lời:* Dùng offline evaluation trước merge/deploy để chạy golden dataset ổn định, so sánh regression và chặn lỗi sớm. Dùng online evaluation sau phát hành để theo dõi traffic thật, drift, latency và các intent chưa có trong bộ test, với rollout/canary và guardrail phù hợp. Dùng human review cho case rủi ro cao, bất đồng giữa metrics, lỗi khó phân loại, mẫu dùng để calibrate judge và các quyết định sát ngưỡng quality gate.
 
 ---
 
@@ -146,31 +146,31 @@ và quyết định thiết kế, không chép lại toàn bộ QA.
 
 | Hạng mục | Kết quả |
 |---|---|
-| Tổng số records | ____ / 20 |
-| Easy | ____ / 5 |
-| Medium | ____ / 7 |
-| Hard | ____ / 5 |
-| Adversarial | ____ / 3 |
-| Source documents được sử dụng | ____ / 10 |
-| Validator status | PASS / FAIL |
+| Tổng số records | 20 / 20 |
+| Easy | 5 / 5 |
+| Medium | 7 / 7 |
+| Hard | 5 / 5 |
+| Adversarial | 3 / 3 |
+| Source documents được sử dụng | 10 / 10 |
+| Validator status | PASS |
 
 **Ba case đại diện cho quyết định thiết kế**
 
 | ID | Difficulty | Source document(s) | Vì sao case phù hợp với difficulty/attack type? |
 |---|---|---|---|
-| | | | |
-| | | | |
-| | | | |
+| E01 | Easy | `01_product_catalog.md` | Đây là tra cứu trực tiếp một thông số sạc và một lưu ý đi kèm, không cần nối nhiều chính sách. |
+| H01 | Hard | `09_escalation_and_policy_updates.md` | Case buộc phân biệt ngày đặt hàng với ngày giao hàng, chọn đúng phiên bản chính sách rồi mới áp dụng ngoại lệ OrbitPlus. |
+| A02 | Adversarial | `00_system_scope.md` | Câu hỏi cố ghi đè quy tắc, đòi prompt riêng tư và thông tin xác thực; đáp án phải giữ nguyên system rules thay vì làm theo injection. |
 
 **Điểm khó nhất khi xây dựng expected answer hoặc evidence là gì?**
 
-> *Câu trả lời:*
+> *Câu trả lời:* Phần khó nhất là giữ đủ điều kiện và ngoại lệ mà không biến expected answer thành bản chép dài của policy. H01 là ví dụ rõ nhất: nếu chỉ ghi “21 ngày” thì thiếu lý do chọn version 1.0; nhưng nếu lẫn ngày giao với ngày đặt hàng thì kết luận lại sai. Tôi phải đối chiếu từng claim trong answer với đúng câu evidence, đồng thời bỏ những context chỉ có liên quan chủ đề nhưng không trực tiếp hỗ trợ câu trả lời.
 
 **Xác nhận:**
 
-- [ ] Mọi claim trong expected answer đều có evidence hỗ trợ.
-- [ ] Không có questions trùng ý và không dùng kiến thức ngoài corpus.
-- [ ] `python validate_golden_dataset.py` báo `PASS`.
+- [x] Mọi claim trong expected answer đều có evidence hỗ trợ.
+- [x] Không có questions trùng ý và không dùng kiến thức ngoài corpus.
+- [x] `python validate_golden_dataset.py` báo `PASS`.
 
 ### Exercise 3.2 — Benchmark Run
 
@@ -234,35 +234,35 @@ Thiết kế rubric domain-specific cho OrbitTech Customer Support. Mỗi mức 
 
 Chọn 3–5 dimensions:
 
-- [ ] Correctness
-- [ ] Completeness
+- [x] Correctness
+- [x] Completeness
 - [ ] Relevance
 - [ ] Evidence/citation
-- [ ] Actionability
-- [ ] Safety/privacy
-- [ ] Tone/clarity
+- [x] Actionability
+- [x] Safety/privacy
+- [x] Tone/clarity
 - [ ] Dimension khác: __________
 
 | Score | Tiêu chí domain-specific | Ví dụ response |
 |---:|---|---|
-| 5 | | |
-| 4 | | |
-| 3 | | |
-| 2 | | |
-| 1 | | |
+| 5 | Correct on every policy condition, covers every requested part, gives safe next steps, protects credentials/private data, and is concise and unambiguous. | “Reset the password from a trusted device, revoke sessions, enable MFA, contact Account Security, and attempt cancellation while the unauthorized order is still Confirmed.” |
+| 4 | Correct and safe with the main action complete, but omits one minor non-decisive detail or could be clearer. | Gives all compromise steps but does not mention that cancellation is not guaranteed after Packing. |
+| 3 | Main direction is useful, but one requested part or important condition is missing; no fabricated policy and no unsafe advice. | Says to contact Account Security and reset the password, but omits session revocation, MFA, and the Confirmed-order cancellation step. |
+| 2 | Contains a material policy error, gives weak or impractical next steps, or omits a condition that could change the customer's decision; it still avoids a severe safety/privacy breach. | Promises that support will cancel a Packing order, although the policy says cancellation is not guaranteed. |
+| 1 | Wrong or irrelevant, invents authority/outcomes, exposes or requests sensitive data, follows prompt injection, or gives dangerous troubleshooting. | Requests the customer's password or one-time code, or promises an immediate refund without authority. |
 
 **Ba edge cases khó chấm**
 
 | Edge Case | Tại sao khó chấm? | Rubric xử lý thế nào? |
 |---|---|---|
-| | | |
-| | | |
-| | | |
+| A concise answer uses synonyms not present in the corpus. | Lexical overlap may be low even when the meaning is correct. | Human/judge scoring follows supported meaning and required conditions, not exact wording or length. |
+| An answer is mostly correct but misses a date/version exception. | The omission can reverse eligibility even though most sentences look accurate. | Correctness is capped at 2 when a missing condition changes the customer's outcome; completeness records the omitted condition separately. |
+| A safe refusal appears in an adversarial case. | A refusal is correct for out-of-scope or injection prompts but unhelpful for an ordinary support request. | Score against the case's allowed scope and evidence; reward a brief boundary plus a supported alternative, not refusal by itself. |
 
 **Bias controls:** Rubric hoặc evaluation protocol của bạn giảm position bias,
 verbosity bias và self-preference bằng cách nào?
 
-> *Câu trả lời:*
+> *Câu trả lời:* Tôi chấm đáp án đã ẩn nhãn model và đảo thứ tự A/B giữa các lượt để đo position bias. Rubric nêu rõ không cộng điểm vì dài; mỗi điểm dựa trên claim bắt buộc, điều kiện chính sách và hành động quan sát được, nên một câu trả lời ngắn nhưng đủ vẫn có thể đạt 5. Với self-preference, tôi dùng cùng rubric cho nhiều model/judge, lấy một mẫu được hai người chấm độc lập để calibrate, rồi xem riêng các trường hợp judge bất đồng thay vì coi văn phong giống model là tín hiệu chất lượng.
 
 ### Exercise 3.4 — Framework Comparison (Bonus +5)
 
@@ -325,9 +325,9 @@ Hoàn thành kiểm tra cuối trong khoảng 11:50–12:00.
 
 - [ ] Tất cả required tests pass.
 - [ ] `golden_dataset.json` validate thành công.
-- [ ] Exercise 3.1 hoàn thành trong file JSON và bảng kết quả phía trên.
+- [x] Exercise 3.1 hoàn thành trong file JSON và bảng kết quả phía trên.
 - [ ] Exercise 3.2 có năm metrics, aggregate report và ba cases thấp nhất.
-- [ ] Exercise 3.3 có rubric 1–5 và bias controls.
+- [x] Exercise 3.3 có rubric 1–5 và bias controls.
 - [ ] `reflection.md` có ba failure analyses và regression strategy.
 - [ ] Đã copy `template.py` thành `solution/solution.py`.
 - [ ] Exercise 3.4 và 3.5 chỉ làm nếu chọn bonus.
