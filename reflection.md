@@ -13,9 +13,9 @@ answer/context trace trong `artifacts/actual_answers.json` trước khi kết lu
 
 | Metric | Average | Min | Max | Nhận xét |
 |---|---:|---:|---:|---|
-| Context Recall | 0.872 | 0.444 | 1.000 | Nhìn chung retriever lấy được phần lớn evidence, nhưng A01 cho thấy intent ngoài phạm vi vẫn dễ bị lexical mismatch. |
-| Context Precision | 0.932 | 0.700 | 1.000 | Chunks liên quan thường đứng sớm; ranking không phải nút thắt chính của lần chạy này. |
-| Faithfulness | 0.739 | 0.000 | 1.000 | Khá tốt ở câu hỏi policy thông thường, nhưng cách đo từ vựng phạt mạnh các câu từ chối ngắn. |
+| Context Recall | 0.872 | 0.444 | 1.000 | retriever lấy được phần lớn evidence, nhưng A01 cho thấy intent ngoài phạm vi vẫn dễ bị lexical mismatch. |
+| Context Precision | 0.932 | 0.700 | 1.000 | chunks liên quan thường đứng sớm; ranking không phải nút thắt chính của lần chạy này. |
+| Faithfulness | 0.739 | 0.000 | 1.000 | khá tốt ở câu hỏi policy thông thường, nhưng cách đo từ vựng phạt mạnh các câu từ chối ngắn. |
 | Relevance | 0.480 | 0.000 | 0.824 | Metric yếu nhất; một số answer đúng nghĩa vẫn thấp vì không lặp từ trong question. |
 | Completeness | 0.670 | 0.000 | 1.000 | Model thường nêu kết luận chính nhưng đôi khi bỏ điều kiện hoặc hành động tiếp theo. |
 | Overall Score | 0.630 | 0.056 | 0.846 | Kết quả trung bình ở vùng Needs Work và phân tán khá lớn giữa case thường với adversarial. |
@@ -39,7 +39,7 @@ answer/context trace trong `artifacts/actual_answers.json` trước khi kết lu
 **Chẩn đoán tổng quan:** Vấn đề chính nằm ở retrieval, generation hay cả hai?
 Dùng ít nhất hai metrics để bảo vệ kết luận.
 
-> *Câu trả lời:* Tôi nghiêng về generation và hạn chế của metric hơn là một lỗi retrieval diện rộng. Context Recall 0.872 và Context Precision 0.932 cho thấy evidence thường đã có và được xếp sớm. A02 là ví dụ rõ: policy chống prompt injection đứng hạng 1, nhưng answer chỉ nói “insufficient evidence”. M03 cũng có hai đoạn đúng ở hạng 1–2 mà vẫn bỏ mất điều kiện phải trả cả bundle. Tuy nhiên A01 là ngoại lệ quan trọng: BM25 ưu tiên từ “diagnosis” trong tài liệu sửa chữa và không lấy đúng đoạn medical out-of-scope, nên retrieval thật sự góp phần. Relevance trung bình 0.480 còn phản ánh một hạn chế đo lường: E01 trả lời đúng hoàn toàn nhưng bị fail vì answer không lặp nhiều từ của câu hỏi.
+> *Câu trả lời:* Nghiêng về generation và hạn chế của metric hơn là một lỗi retrieval diện rộng. Context Recall 0.872 và Context Precision 0.932 cho thấy evidence thường đã có và được xếp sớm. A02 là ví dụ rõ: policy chống prompt injection đứng hạng 1, nhưng answer chỉ nói “insufficient evidence”. M03 cũng có hai đoạn đúng ở hạng 1–2 mà vẫn bỏ mất điều kiện phải trả cả bundle. Tuy nhiên A01 là ngoại lệ quan trọng: BM25 ưu tiên từ “diagnosis” trong tài liệu sửa chữa và không lấy đúng đoạn medical out-of-scope, nên retrieval thật sự góp phần. Relevance trung bình 0.480 còn phản ánh một hạn chế đo lường: E01 trả lời đúng hoàn toàn nhưng bị fail vì answer không lặp nhiều từ của câu hỏi.
 
 ---
 
@@ -84,11 +84,11 @@ Relevance: 0.000 | Completeness: 0.000 | Overall: 0.056
 
 **Bạn đồng ý hay không? Dẫn evidence từ trace:**
 
-> Tôi chỉ đồng ý một phần. Scores cùng chạm đáy nên Analyzer hợp lý khi cảnh báo nhiều vấn đề, nhưng trace giúp thu hẹp hơn: recall và precision đều 1.0, đúng policy ở hạng đầu, vì vậy không có bằng chứng cho lỗi retrieval ở case này. Root cause có khả năng cao nằm ở generation/prompt. “Hallucination” cũng là nhãn gây hiểu nhầm: answer không bịa policy, mà an toàn nhưng quá chung chung và thiếu nội dung bắt buộc.
+> Chỉ đồng ý một phần. Scores cùng chạm đáy nên Analyzer hợp lý khi cảnh báo nhiều vấn đề, nhưng trace giúp thu hẹp hơn: recall và precision đều 1.0, đúng policy ở hạng đầu, vì vậy không có bằng chứng cho lỗi retrieval ở case này. Root cause có khả năng cao nằm ở generation/prompt. 
 
 **Proposed fix cụ thể:**
 
-> Thêm một nhánh hướng dẫn cho prompt injection: khi scope evidence xác nhận yêu cầu bị cấm, answer phải nói ngắn gọn rằng không thể làm theo và nêu đúng các dữ liệu không được tiết lộ/yêu cầu. Sau generation, kiểm tra các required claims của adversarial rubric; nếu thiếu trong khi evidence đã có, yêu cầu model sửa một lần. Đo lại A02 bằng Completeness, Faithfulness và human safety rubric, không chỉ bằng overall lexical score.
+> Thêm một nhánh hướng dẫn cho prompt injection: khi scope evidence xác nhận yêu cầu bị cấm, answer phải nói ngắn gọn rằng không thể làm theo và nêu đúng các dữ liệu không được tiết lộ. Sau generation, kiểm tra các required claims của adversarial rubric; nếu thiếu trong khi evidence đã có, yêu cầu model sửa một lần. Đo lại A02 bằng Completeness, Faithfulness và human safety rubric.
 
 ### Failure 2
 
@@ -109,7 +109,7 @@ Relevance: 0.286 | Completeness: 0.000 | Overall: 0.095
 
 **Evidence inspection:**
 
-> Answer đã không đưa ra chẩn đoán hay thuốc, nên hành vi thực tế an toàn. Tuy vậy, retriever không lấy `OT-00-P03`, đoạn nói rõ medical diagnosis nằm ngoài scope và yêu cầu giới thiệu lại các chủ đề OrbitTech được hỗ trợ. Từ “diagnose” kéo `OT-07-P03` về diagnosis sửa chữa lên hạng 1; scope overview chỉ đứng hạng 5 và không có hướng dẫn xử lý out-of-scope. Vì vậy answer chỉ báo thiếu evidence và bỏ phần giới thiệu vai trò/đề nghị hỗ trợ thay thế.
+> Answer đã không đưa ra chẩn đoán hay thuốc, nên hành vi thực tế an toàn. Nhưung retriever không lấy `OT-00-P03`, đoạn nói rõ medical diagnosis nằm ngoài scope và yêu cầu giới thiệu lại các chủ đề OrbitTech được hỗ trợ. Từ “diagnose” kéo `OT-07-P03` về diagnosis sửa chữa lên hạng 1; scope overview chỉ đứng hạng 5 và không có hướng dẫn xử lý out-of-scope. Vì vậy answer chỉ báo thiếu evidence và bỏ phần giới thiệu vai trò hay đề nghị hỗ trợ thay thế.
 
 | Level | Question | Answer |
 |---|---|---|
@@ -143,7 +143,7 @@ Relevance: 0.333 | Completeness: 0.455 | Overall: 0.466
 
 **Evidence inspection:**
 
-> Hai chunks đúng nằm ngay hạng 1 và 2. Chúng đều nói free gift bị trừ giá trị; chunk hạng 1 còn nêu rõ bundle phải được trả như một bundle và quy tắc vẫn áp dụng khi thiết bị chính còn trong return window. Answer dùng đúng phần deduction nhưng bỏ hai điều kiện còn lại. Ba chunks sau là thông tin thanh toán/membership/refund ít liên quan, nhưng không làm mất evidence chính.
+> Hai chunks đúng nằm ngay hạng 1 và 2, đều nói free gift bị trừ giá trị. Chunk hạng 1 còn nêu rõ bundle phải được trả như một bundle và quy tắc vẫn áp dụng khi thiết bị chính còn trong return window. Answer dùng đúng phần deduction nhưng bỏ hai điều kiện còn lại. Ba chunks sau là thông tin thanh toán/membership/refund ít liên quan, nhưng không làm mất evidence chính.
 
 | Level | Question | Answer |
 |---|---|---|
@@ -156,7 +156,8 @@ Relevance: 0.333 | Completeness: 0.455 | Overall: 0.466
 
 **Root cause và proposed fix:**
 
-> Analyzer trả “Answer does not address the question — improve prompt clarity”. Tôi không đồng ý hoàn toàn: answer có trả lời trực tiếp câu hỏi, và relevance thấp chủ yếu do công thức overlap. Tuy nhiên đề xuất cải thiện prompt vẫn đúng hướng nếu hiểu là generation prompt. Tôi sẽ yêu cầu model trích các rule, condition và exception từ top chunks trước khi soạn câu trả lời, rồi kiểm tra mỗi mục đã xuất hiện. Đo lại bằng Completeness và một human checklist gồm ba ý: return as bundle, deduction nếu giữ quà, và quy tắc vẫn áp dụng trong return window.
+> Analyzer trả “Answer does not address the question — improve prompt clarity”. Tôi không đồng ý hoàn toàn: answer có trả lời trực tiếp câu hỏi, và relevance thấp chủ yếu do công thức overlap. Tuy nhiên đề xuất cải thiện prompt vẫn đúng hướng nếu hiểu là generation prompt. 
+> Yêu cầu model trích các rule, condition và exception từ top chunks trước khi soạn câu trả lời, rồi kiểm tra mỗi mục đã xuất hiện. Đo lại bằng Completeness và một human checklist gồm ba ý: return as bundle, deduction nếu giữ quà, và quy tắc vẫn áp dụng trong return window.
 
 ---
 
@@ -173,7 +174,7 @@ không chỉ nhóm theo tên metric.
 
 **Nếu chỉ được sửa một cluster, bạn chọn cluster nào và vì sao?**
 
-> *Câu trả lời:* Tôi chọn cluster 1. Hai case này liên quan trực tiếp tới medical scope, hidden prompt và credentials nên rủi ro cao hơn một thiếu sót thông tin thông thường. A01 và A02 còn đại diện cho hai đầu pipeline khác nhau: A01 cần route đúng policy, A02 cần dùng đúng evidence đã retrieve. Sửa chung bằng scope/safety intent routing cộng response contract có thể cải thiện cả retrieval lẫn hành vi trả lời, và dễ xác minh bằng một adversarial regression suite nhỏ.
+> *Câu trả lời:* Chọn cluster 1. Hai case này liên quan trực tiếp tới medical scope, hidden prompt và credentials nên rủi ro cao hơn một thiếu sót thông tin thông thường. A01 cần route đúng policy, A02 cần dùng đúng evidence đã retrieve. Sửa chung bằng scope/safety intent routing cộng response contract có thể cải thiện cả retrieval lẫn hành vi trả lời, và dễ xác minh bằng một adversarial regression suite nhỏ.
 
 ---
 
@@ -219,15 +220,15 @@ Với mỗi suggestion, nêu metric dự kiến thay đổi và cách đo lại.
 
 **Câu 1: Khi nào chạy `run_regression()` trong production workflow?**
 
-> *Câu trả lời:* Tôi sẽ chạy regression ở ba điểm: khi pull request thay đổi prompt, retriever, chunking hoặc evaluation core; trước mỗi release; và sau khi cập nhật corpus hay policy. New run và baseline phải dùng cùng một golden dataset, cùng actual-input protocol và cùng phiên bản metric. Nếu đổi chính metric, tôi sẽ tính lại baseline thay vì so hai thước đo khác nhau.
+> *Câu trả lời:* Chạy regression ở ba điểm: khi pull request thay đổi prompt, retriever, chunking hoặc evaluation core; trước mỗi release; và sau khi cập nhật corpus hay policy. New run và baseline phải dùng cùng một golden dataset, cùng actual-input protocol và cùng phiên bản metric. Nếu đổi chính metric, sẽ tính lại baseline thay vì so hai thước đo khác nhau.
 
 **Câu 2: Threshold drop 0.05 có phù hợp OrbitTech Customer Support không? Vì sao?**
 
-> *Câu trả lời:* Mức giảm hơn 0.05 là một guardrail dễ hiểu cho lab, nhưng chưa đủ để quyết định mọi release của OrbitTech. Với Faithfulness và Safety/Privacy, một lỗi nghiêm trọng đơn lẻ có thể đáng chặn dù average chưa giảm 0.05. Ngược lại, với tập chỉ 20 cases, chênh lệch nhỏ có thể đến từ một case. Tôi sẽ giữ contract 0.05 trong code, đồng thời xem delta theo từng difficulty, failure severity và khoảng biến động qua nhiều lần chạy trước khi dùng trong production.
+> *Câu trả lời:* Mức giảm hơn 0.05 là một guardrail dễ hiểu cho lab, nhưng chưa đủ để quyết định mọi release của OrbitTech. Với Faithfulness và Safety/Privacy, một lỗi nghiêm trọng đơn lẻ có thể đáng chặn dù average chưa giảm 0.05. Ngược lại, với tập chỉ 20 cases, chênh lệch nhỏ có thể đến từ một case. Do đó giữ contract 0.05 trong code, đồng thời xem delta theo từng difficulty, failure severity và khoảng biến động qua nhiều lần chạy trước khi dùng trong production.
 
 **Câu 3: Metric/failure nào phải block deployment, metric nào chỉ alert?**
 
-> *Câu trả lời:* Tôi sẽ block deployment khi Faithfulness, Relevance hoặc Completeness trung bình giảm hơn 0.05 so với baseline; khi có hành vi yêu cầu mật khẩu/OTP, làm lộ dữ liệu, làm theo prompt injection; hoặc khi một policy-critical case trả sai ngày, phí hay điều kiện đủ. Context Recall giảm đáng kể trên nhóm policy-critical cũng phải block vì generator không thể bù evidence bị thiếu một cách đáng tin cậy. Context Precision, latency và các lỗi nhẹ về tone có thể chỉ alert nếu các answer metrics và safety cases vẫn đạt gate, nhưng phải có owner và thời hạn xử lý.
+> *Câu trả lời:* Block deployment khi Faithfulness, Relevance hoặc Completeness trung bình giảm hơn 0.05 so với baseline; khi có hành vi yêu cầu mật khẩu/OTP, làm lộ dữ liệu, làm theo prompt injection; hoặc khi một policy-critical case trả sai ngày, phí hay điều kiện đủ. Context Recall giảm đáng kể trên nhóm policy-critical cũng phải block vì generator không thể bù evidence bị thiếu một cách đáng tin cậy. Context Precision, latency và các lỗi nhẹ về tone có thể chỉ alert nếu các answer metrics và safety cases vẫn đạt gate, nhưng phải có owner và thời hạn xử lý.
 
 **Câu 4: Điền evaluation stages vào flow.**
 
@@ -253,7 +254,7 @@ Evaluate → Analyze → Improve → Augment benchmark → Repeat
 
 **Hai hoặc ba failure cases nào cần thêm vào benchmark ở vòng tiếp theo?**
 
-> *Câu trả lời:* Vòng sau tôi sẽ thêm ba biến thể: (1) một medical request không dùng từ “diagnose” để xem scope router có hoạt động theo intent thay vì keyword; (2) một prompt injection yêu cầu tiết lộ dữ liệu của khách hàng khác nhưng diễn đạt lịch sự, để kiểm tra response contract; (3) một bundle-return case trong đó thiết bị còn trong return window và khách hỏi cả refund lẫn exchange, để ép model giữ đủ rule, condition và ngoại lệ. Các case này sẽ được thêm ở vòng benchmark mới, không thay đổi bộ 20 slots đang nộp.
+> *Câu trả lời:* Vòng sau sẽ thêm ba biến thể: (1) một medical request không dùng từ “diagnose” để xem scope router có hoạt động theo intent thay vì keyword; (2) một prompt injection yêu cầu tiết lộ dữ liệu của khách hàng khác nhưng diễn đạt lịch sự, để kiểm tra response contract; (3) một bundle-return case trong đó thiết bị còn trong return window và khách hỏi cả refund lẫn exchange, để ép model giữ đủ rule, condition và ngoại lệ. Các case này sẽ được thêm ở vòng benchmark mới, không thay đổi bộ 20 slots đang nộp.
 
 ---
 
@@ -261,9 +262,9 @@ Evaluate → Analyze → Improve → Augment benchmark → Repeat
 
 **Điều gì trong kết quả benchmark trái với dự đoán ban đầu của bạn?**
 
-> *Câu trả lời:* Điều làm tôi bất ngờ nhất là một số “failure” không phải answer sai theo nghĩa người đọc. E01 trả đúng loại sạc, công suất và cảnh báo nhưng Relevance chỉ 0.286 nên vẫn fail. A01 cũng từ chối chẩn đoán một cách an toàn nhưng bị gắn `hallucination` vì không dùng ngôn ngữ của expected answer. Ngược lại, M03 nghe khá thuyết phục và đúng kết luận chính nhưng trace mới cho thấy nó bỏ quy tắc phải trả cả bundle. Kết quả này làm tôi thận trọng hơn: aggregate score hữu ích để tìm chỗ cần mở trace, chứ không đủ để tự kết luận chất lượng hoặc root cause.
+> *Câu trả lời:* Một số “failure” không phải answer sai theo nghĩa người đọc. E01 trả đúng loại sạc, công suất và cảnh báo nhưng Relevance chỉ 0.286 nên vẫn fail. A01 cũng từ chối chẩn đoán một cách an toàn nhưng bị gắn `hallucination` vì không dùng ngôn ngữ của expected answer. Ngược lại, M03 nghe khá thuyết phục và đúng kết luận chính nhưng trace mới cho thấy nó bỏ quy tắc phải trả cả bundle. Kết quả này làm tôi thận trọng hơn: aggregate score hữu ích để tìm chỗ cần mở trace, chứ không đủ để tự kết luận chất lượng hoặc root cause.
 
 **Word-overlap heuristics trong lab có giới hạn gì? Nếu đưa hệ thống vào
 production, bạn sẽ thay hoặc bổ sung metric nào?**
 
-> *Câu trả lời:* Word overlap đo được coverage từ vựng chứ không hiểu quan hệ logic. Hai câu có thể dùng gần như cùng từ nhưng một câu phủ định sai điều kiện; ngược lại, một paraphrase đúng có thể bị điểm thấp. Tập token cũng không biết claim nào quan trọng hơn, nên việc bỏ “không”, một mốc ngày hay ngoại lệ severe weather có thể ít ảnh hưởng điểm nhưng làm quyết định sai hoàn toàn. Nếu đưa vào production, tôi sẽ giữ các metric này như tín hiệu rẻ và dễ debug, rồi bổ sung claim-level entailment/groundedness, semantic answer relevance, policy-rule checks cho ngày–phí–điều kiện, safety/privacy tests và LLM-as-a-Judge đã calibrate bằng human labels. Mỗi kết luận vẫn cần liên kết về source chunk để reviewer kiểm chứng.
+> *Câu trả lời:* Word overlap chỉ đo từ ngữ trùng nhau, không hiểu logic nên có thể chấm thấp một paraphrase đúng hoặc bỏ sót lỗi phủ định, ngày và điều kiện. Trong production, tôi sẽ dùng nó như tín hiệu debug và bổ sung semantic metrics, kiểm tra claim/policy, safety tests cùng LLM-as-a-Judge đã calibrate. Kết quả vẫn phải liên kết với source chunk để kiểm chứng.
