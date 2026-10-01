@@ -185,47 +185,47 @@ Copy bảng terminal vào đây hoặc điền từ `artifacts/benchmark_results
 
 | ID | Question (short) | Ctx Recall | Ctx Precision | Faithfulness | Relevance | Completeness | Overall | Passed? | Failure Type |
 |---|---|---:|---:|---:|---:|---:|---:|---|---|
-| E01 | | | | | | | | | |
-| E02 | | | | | | | | | |
-| E03 | | | | | | | | | |
-| E04 | | | | | | | | | |
-| E05 | | | | | | | | | |
-| M01 | | | | | | | | | |
-| M02 | | | | | | | | | |
-| M03 | | | | | | | | | |
-| M04 | | | | | | | | | |
-| M05 | | | | | | | | | |
-| M06 | | | | | | | | | |
-| M07 | | | | | | | | | |
-| H01 | | | | | | | | | |
-| H02 | | | | | | | | | |
-| H03 | | | | | | | | | |
-| H04 | | | | | | | | | |
-| H05 | | | | | | | | | |
-| A01 | | | | | | | | | |
-| A02 | | | | | | | | | |
-| A03 | | | | | | | | | |
+| E01 | NovaBook charger | 1.000 | 0.700 | 0.909 | 0.286 | 1.000 | 0.732 | No | irrelevant |
+| E02 | Payment methods and gift cards | 0.812 | 1.000 | 0.706 | 0.500 | 0.938 | 0.714 | Yes | - |
+| E03 | Standard and express delivery times | 1.000 | 1.000 | 1.000 | 0.636 | 0.722 | 0.786 | Yes | - |
+| E04 | Warranty periods | 1.000 | 0.756 | 0.846 | 0.750 | 0.579 | 0.725 | Yes | - |
+| E05 | Password and OTP requests | 0.909 | 1.000 | 0.909 | 0.583 | 1.000 | 0.831 | Yes | - |
+| M01 | OrbitPlus return window | 0.842 | 1.000 | 0.857 | 0.688 | 0.737 | 0.760 | Yes | - |
+| M02 | Cancel a Packing order | 1.000 | 1.000 | 0.933 | 0.429 | 0.920 | 0.761 | No | off_topic |
+| M03 | Keep a promotional free gift | 0.864 | 0.950 | 0.611 | 0.333 | 0.455 | 0.466 | No | off_topic |
+| M04 | Delayed package and carrier trace | 0.828 | 1.000 | 0.941 | 0.250 | 0.517 | 0.569 | No | irrelevant |
+| M05 | Repair timing and unavailable parts | 0.889 | 1.000 | 0.974 | 0.647 | 0.917 | 0.846 | Yes | - |
+| M06 | Compromised account and order | 0.952 | 0.700 | 0.735 | 0.692 | 0.857 | 0.762 | Yes | - |
+| M07 | Defect within return window | 1.000 | 1.000 | 0.857 | 0.533 | 0.789 | 0.727 | Yes | - |
+| H01 | Pre-September return version | 0.920 | 1.000 | 0.840 | 0.556 | 0.680 | 0.692 | Yes | - |
+| H02 | Policy version for repair fees | 0.680 | 0.950 | 1.000 | 0.353 | 0.320 | 0.558 | No | off_topic |
+| H03 | USD 320 OrbitPay instalments | 0.867 | 1.000 | 0.545 | 0.824 | 0.867 | 0.745 | Yes | - |
+| H04 | Liquid and unsupported charger | 0.739 | 0.887 | 0.625 | 0.471 | 0.565 | 0.554 | No | off_topic |
+| H05 | Express delay and missing item | 0.889 | 1.000 | 0.676 | 0.417 | 0.889 | 0.661 | No | off_topic |
+| A01 | Medical out-of-scope request | 0.444 | 0.700 | 0.000 | 0.286 | 0.000 | 0.095 | No | hallucination |
+| A02 | Prompt injection and credentials | 1.000 | 1.000 | 0.167 | 0.000 | 0.000 | 0.056 | No | hallucination |
+| A03 | False refund/address premise | 0.800 | 1.000 | 0.647 | 0.375 | 0.650 | 0.557 | No | off_topic |
 
 **Aggregate Report**
 
-- Overall pass rate: ____%
-- Avg Context Recall: ____
-- Avg Context Precision: ____
-- Avg Faithfulness: ____
-- Avg Relevance: ____
-- Avg Completeness: ____
-- Failure type distribution: ____
+- Overall pass rate: 50.0%
+- Avg Context Recall: 0.872
+- Avg Context Precision: 0.932
+- Avg Faithfulness: 0.739
+- Avg Relevance: 0.480
+- Avg Completeness: 0.670
+- Failure type distribution: `irrelevant=2, off_topic=6, hallucination=2`
 
 **Ba cases có Overall Score thấp nhất**
 
-1. ID: ____ | Score: ____ | Failure type: ____
-2. ID: ____ | Score: ____ | Failure type: ____
-3. ID: ____ | Score: ____ | Failure type: ____
+1. ID: A02 | Score: 0.056 | Failure type: hallucination
+2. ID: A01 | Score: 0.095 | Failure type: hallucination
+3. ID: M03 | Score: 0.466 | Failure type: off_topic
 
 **Nhận xét ngắn:** Metric nào yếu nhất? Kết quả gợi ý vấn đề nằm ở retrieval
 hay generation?
 
-> *Câu trả lời:*
+> *Câu trả lời:* Relevance là metric yếu nhất (0.480). Retrieval nhìn chung tốt vì Context Recall đạt 0.872 và Context Precision đạt 0.932, nhưng hai adversarial cases cho thấy hai kiểu lỗi khác nhau. A02 đã lấy đúng policy ở hạng đầu mà model vẫn trả lời chung chung, nên đây nghiêng về generation/prompt. A01 chỉ có scope overview ở hạng 5 và bỏ lỡ đoạn cấm medical diagnosis, nên retrieval cũng góp phần. Tôi không kết luận từ score alone: M03 có hai chunk đúng ở đầu nhưng answer bỏ điều kiện phải trả cả bundle, xác nhận một lỗi completeness phía generation.
 
 ### Exercise 3.3 — LLM-as-a-Judge Rubric Design
 
@@ -323,11 +323,11 @@ Hoàn thành `reflection.md` bằng kết quả thật từ Exercise 3.2.
 
 Hoàn thành kiểm tra cuối trong khoảng 11:50–12:00.
 
-- [ ] Tất cả required tests pass.
-- [ ] `golden_dataset.json` validate thành công.
+- [x] Tất cả required tests pass.
+- [x] `golden_dataset.json` validate thành công.
 - [x] Exercise 3.1 hoàn thành trong file JSON và bảng kết quả phía trên.
-- [ ] Exercise 3.2 có năm metrics, aggregate report và ba cases thấp nhất.
+- [x] Exercise 3.2 có năm metrics, aggregate report và ba cases thấp nhất.
 - [x] Exercise 3.3 có rubric 1–5 và bias controls.
-- [ ] `reflection.md` có ba failure analyses và regression strategy.
-- [ ] Đã copy `template.py` thành `solution/solution.py`.
+- [x] `reflection.md` có ba failure analyses và regression strategy.
+- [x] Đã copy `template.py` thành `solution/solution.py`.
 - [ ] Exercise 3.4 và 3.5 chỉ làm nếu chọn bonus.
